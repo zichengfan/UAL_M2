@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UAL M2 - Memory Map</title>
+    
+    <!-- Mapbox GL JS -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>UAL M2 Memory Map</h1>
+            <p>Keeping memories alive through interactive mapping</p>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-container">
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <div class="panel-header">
+                    <h3>Add Memory</h3>
+                </div>
+                
+                <div class="upload-section">
+                    <div class="upload-group">
+                        <label for="member-name">Member Name:</label>
+                        <input type="text" id="member-name" placeholder="Enter member name">
+                    </div>
+                    
+                    <div class="upload-group">
+                        <label for="memory-title">Memory Title:</label>
+                        <input type="text" id="memory-title" placeholder="Enter memory title">
+                    </div>
+                    
+                    <div class="upload-group">
+                        <label for="memory-text">Description:</label>
+                        <textarea id="memory-text" placeholder="Enter memory description..."></textarea>
+                    </div>
+                    
+                    <div class="upload-group">
+                        <label for="image-upload">Upload Image:</label>
+                        <input type="file" id="image-upload" accept="image/*">
+                        <div id="image-preview"></div>
+                    </div>
+                    
+                    <div class="upload-group">
+                        <label for="trajectory-upload">Upload Trajectory (GPX/JSON):</label>
+                        <input type="file" id="trajectory-upload" accept=".gpx,.json,.geojson">
+                    </div>
+                    
+                    <button id="add-marker-btn" class="btn btn-primary">Click Map to Add Location</button>
+                    <button id="save-memory-btn" class="btn btn-success" disabled>Save Memory</button>
+                </div>
+                
+                <div class="memories-section">
+                    <h4>Saved Memories</h4>
+                    <div id="memories-list"></div>
+                    <button id="clear-all-btn" class="btn btn-danger">Clear All Memories</button>
+                </div>
+            </div>
+
+            <!-- Map Container -->
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Custom JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>
