@@ -1,0 +1,21 @@
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [-0.1278, 51.5074],
+      [-0.1275, 51.5080],
+      [-0.1270, 51.5085],
+      [-0.1265, 51.5090],
+      [-0.1260, 51.5085],
+      [-0.1265, 51.5080],
+      [-0.1278, 51.5074]
+    ]
+  },
+  "properties": {
+    "name": "Sample Research Route",
+    "description": "Route taken during field research",
+    "time": "2024-01-15",
+    "duration": "30 minutes"
+  }
+}
