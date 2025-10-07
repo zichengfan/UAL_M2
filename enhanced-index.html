@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UAL M2 - Enhanced Memory Map</title>
+    
+    <!-- Mapbox GL JS -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/enhanced-styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>🎓 UAL M2 Enhanced Memory Map</h1>
+            <p>Multi-user memory preservation system for graduated members</p>
+        </header>
+
+        <!-- Status Display -->
+        <div id="status" class="status-display" style="margin: 20px auto; max-width: 1400px; padding: 15px; border-radius: 8px; font-weight: 500;">Initializing...</div>
+
+        <div class="main-container">
+            <!-- Enhanced Control Panel -->
+            <div class="control-panel enhanced-panel">
+                
+                <!-- Member Registration Section -->
+                <div class="registration-section" id="registration-section">
+                    <div class="section-header">
+                        <h3>👋 Member Registration</h3>
+                        <p>Register to get your personal color and save your contributions</p>
+                    </div>
+                    
+                    <div class="registration-form" id="registration-form">
+                        <div class="form-group">
+                            <label for="reg-name">Your Name:</label>
+                            <input type="text" id="reg-name" placeholder="Enter your full name">
+                        </div>
+                        <div class="form-group">
+                            <label for="reg-email">Email Address:</label>
+                            <input type="email" id="reg-email" placeholder="your.email@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="reg-affiliation">Affiliation (optional):</label>
+                            <input type="text" id="reg-affiliation" placeholder="Department or Organization">
+                        </div>
+                        
+                        <div class="form-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="reg-show-name" checked>
+                                <span>Show my name with contributions</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="reg-allow-contact" checked>
+                                <span>Allow others to contact me</span>
+                            </label>
+                        </div>
+                        
+                        <div class="registration-buttons">
+                            <button id="register-btn" class="btn btn-primary">🎨 Register & Get My Color</button>
+                            <button id="login-btn" class="btn btn-secondary">🔑 I'm Already Registered</button>
+                        </div>
+                    </div>
+                    
+                    <div class="login-form" id="login-form" style="display: none;">
+                        <div class="form-group">
+                            <label for="login-email">Your Email:</label>
+                            <input type="email" id="login-email" placeholder="Enter your registered email">
+                        </div>
+                        <div class="login-buttons">
+                            <button id="login-submit-btn" class="btn btn-primary">🚀 Continue</button>
+                            <button id="back-to-register-btn" class="btn btn-secondary">← Back to Registration</button>
+                        </div>
+                    </div>
+                    
+                    <div class="current-contributor-info" id="current-contributor-info" style="display: none;">
+                        <div class="contributor-display">
+                            <div class="contributor-color-preview" id="contributor-color-preview"></div>
+                            <div class="contributor-details">
+                                <strong id="contributor-name-display"></strong>
+                                <div id="contributor-email-display"></div>
+                                <div class="contributor-stats" id="contributor-stats"></div>
+                            </div>
+                        </div>
+                        <button id="logout-btn" class="btn btn-outline">🔄 Switch User</button>
+                    </div>
+                </div>
+
+                <!-- Panel Header -->
+                <div class="panel-header">
+                    <h2>📝 Add New Memory</h2>
+                    <p>Create a memory for the selected graduated member</p>
+                </div>
+
+                <!-- Memory Form -->
+                <div class="memory-form">
+                    <!-- Contributor Information -->
+                    <div class="form-section">
+                        <h3>👤 Your Information</h3>
+                        <div class="form-group">
+                            <label for="contributor-name">Your Name:</label>
+                            <input type="text" id="contributor-name" placeholder="Who is contributing this memory?">
+                        </div>
+                        <div class="form-group">
+                            <label for="contributor-email">Your Email (optional):</label>
+                            <input type="email" id="contributor-email" placeholder="your.email@example.com">
+                        </div>
+                    </div>
+
+                    <!-- Memory Details -->
+                    <div class="form-section">
+                        <h3>💭 Memory Details</h3>
+                        <div class="form-group">
+                            <label for="memory-title">Memory Title:</label>
+                            <input type="text" id="memory-title" placeholder="Give this memory a title">
+                        </div>
+                        <div class="form-group">
+                            <label for="memory-text">Memory Description:</label>
+                            <textarea id="memory-text" rows="4" placeholder="Describe this memory..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="memory-tags">Tags (comma-separated):</label>
+                            <input type="text" id="memory-tags" placeholder="research, coffee, discussion">
+                        </div>
+                    </div>
+
+                    <!-- Media Upload -->
+                    <div class="form-section">
+                        <h3>📎 Attachments</h3>
+                        <div class="form-group">
+                            <label for="image-upload">Upload Image:</label>
+                            <input type="file" id="image-upload" accept="image/*">
+                            <div id="image-preview"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="trajectory-upload">Upload Trajectory (GPX/GeoJSON):</label>
+                            <input type="file" id="trajectory-upload" accept=".gpx,.json,.geojson">
+                        </div>
+                    </div>
+
+                    <!-- Location -->
+                    <div class="form-section">
+                        <h3>📍 Location</h3>
+                        <button type="button" id="add-marker-btn" class="btn btn-primary">
+                            Click Map to Add Location
+                        </button>
+                        <p class="help-text">Click the button above, then click on the map to set the memory location.</p>
+                        <div id="location-status" style="margin-top: 10px; padding: 8px; border-radius: 4px; font-size: 14px; display: none;">
+                            📍 Location selected
+                        </div>
+                    </div>
+
+                    <!-- Target User Status -->
+                    <div class="form-section">
+                        <h3>🎯 Target User</h3>
+                        <div id="target-user-status" style="padding: 8px; border-radius: 4px; font-size: 14px; background-color: #f8f9fa;">
+                            Please select a graduated member from the list above
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="form-actions">
+                        <button type="button" id="save-memory-btn" class="btn btn-success" disabled>
+                            Save Memory
+                        </button>
+                        <button type="button" id="clear-form-btn" class="btn btn-secondary">
+                            Clear Form
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Memories List -->
+                <div class="memories-section">
+                    <div class="section-header">
+                        <h3>📚 Memories for Current User</h3>
+                        <button id="clear-all-btn" class="btn btn-danger btn-sm">Clear All</button>
+                    </div>
+                    <div id="memories-list" class="memories-list">
+                        <!-- Memories will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Container -->
+            <div id="map" class="map-container"></div>
+        </div>
+    </div>
+
+    <!-- Loading indicator -->
+    <div id="loading" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Loading memories...</p>
+        </div>
+    </div>
+
+    <!-- Data Management Scripts -->
+    <script src="js/data-manager.js"></script>
+    <script src="js/enhanced-memory-map.js"></script>
+    
+    <!-- Initialization Script -->
+    <script>
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            if (statusDiv) {
+                statusDiv.textContent = message;
+                statusDiv.style.backgroundColor = type === 'error' ? '#f8d7da' : type === 'success' ? '#d4edda' : '#d1ecf1';
+                statusDiv.style.color = type === 'error' ? '#721c24' : type === 'success' ? '#155724' : '#0c5460';
+            }
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        // Check initialization on DOM load
+        document.addEventListener('DOMContentLoaded', async () => {
+            updateStatus('Checking dependencies...');
+            
+            // Check Mapbox
+            if (typeof mapboxgl === 'undefined') {
+                updateStatus('❌ Error: Mapbox GL JS not loaded', 'error');
+                return;
+            }
+            
+            // Check DataManager
+            if (typeof DataManager === 'undefined') {
+                updateStatus('❌ Error: Data manager not loaded', 'error');
+                return;
+            }
+            
+            // Check EnhancedMemoryMap
+            if (typeof EnhancedMemoryMap === 'undefined') {
+                updateStatus('❌ Error: Enhanced memory map class not loaded', 'error');
+                return;
+            }
+            
+            updateStatus('Initializing application...');
+            
+            try {
+                // Initialize
+                window.enhancedMemoryMap = new EnhancedMemoryMap();
+                await window.enhancedMemoryMap.init();
+                updateStatus('✅ Enhanced memory map initialized successfully!', 'success');
+                
+                // Hide status after 3 seconds if successful
+                setTimeout(() => {
+                    document.getElementById('status').style.display = 'none';
+                }, 3000);
+                
+            } catch (error) {
+                updateStatus('❌ Initialization failed: ' + error.message, 'error');
+                console.error('Initialization error:', error);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,137 +1,126 @@
-# UAL M2 - Memory Map
+# UAL M2 - Enhanced Memory Map
 
-A web-mapping project using Mapbox to serve as an interactive memory keeper for organization members. This application allows users to upload images, text, and trajectory data to create a visual timeline of activities and behaviors on an interactive map.
+A multi-user interactive memory mapping system that allows current members to create and preserve memories for graduating members. Built with Mapbox GL JS and featuring member registration, color-coded contributions, and persistent storage.
 
 ## 🎯 Project Overview
 
-This project creates a digital "time machine" that preserves memories and activities of organization members who are leaving. It provides an intuitive way to:
+This enhanced memory map creates a digital preservation system where:
+- **Current members** contribute memories for **graduating members**
+- Each contributor gets a **unique color** for their contributions
+- **User registration** system with persistent sessions
+- **Multi-user switching** to view memories for different graduates
+- **Data persistence** using browser localStorage
 
-- **Map Memories**: Pin important locations with stories and images
-- **Track Journeys**: Upload and visualize trajectory data (GPX files)
-- **Share Stories**: Combine text, images, and locations into meaningful memories
-- **Preserve Legacy**: Keep organizational knowledge and experiences alive
+## ✨ Key Features
 
-## ✨ Features
+### 🎨 Member Registration System
+- User registration with personal color assignment
+- Email-based login for returning users
+- Persistent user sessions across visits
+- Contributor profile management
 
-- **Interactive Mapping**: Built on Mapbox GL JS for smooth, responsive maps
-- **Multi-format Upload Support**: 
-  - Images (JPG, PNG, GIF)
-  - Trajectory files (GPX, GeoJSON)
-  - Text annotations
-- **Real-time Visualization**: See memories appear on the map instantly
-- **Local Storage**: Memories persist in browser storage
-- **Responsive Design**: Works seamlessly on desktop and mobile
-- **Simple Interface**: Clean, intuitive UI that's not overly complicated
-- **Memory Management**: Browse, navigate to, and manage saved memories
+### 🗺️ Enhanced Mapping
+- Interactive Mapbox GL JS integration
+- Color-coded memory markers by contributor
+- Urban Analytics Lab location marker
+- Smooth user switching between graduates
+
+### 📝 Memory Management
+- Rich memory creation with title, description, tags
+- Image upload support
+- Location-based memory placement
+- Memory browsing and navigation
+
+### 👥 Multi-User System
+- Graduated member profiles (Dr. Alice Chen, Prof. Bob Wang)
+- Contributor registration and management
+- Color-based grouping of contributions
+- User-specific memory views
 
 ## 🚀 Quick Start
 
-1. **Clone the repository**
+1. **Open the application**
    ```bash
-   git clone https://github.com/zichengfan/UAL_M2.git
-   cd UAL_M2
+   # Method 1: Direct browser access
+   open enhanced-index.html
+   
+   # Method 2: Local server
+   python3 -m http.server 8080
+   # Visit: http://localhost:8080/enhanced-index.html
    ```
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+2. **Register as a contributor**
+   - Fill in your name and email
+   - Get assigned a unique color
+   - Start contributing memories
 
-3. **Set up Mapbox token**
-   - See [README-SETUP.md](README-SETUP.md) for detailed instructions
-   - Get a free token from [Mapbox](https://account.mapbox.com/)
-   - Replace the demo token in `script.js`
+3. **Select a graduated member**
+   - Choose from available graduated members
+   - Add memories specifically for them
+   - View existing memories by color
 
-4. **Start the development server**
-   ```bash
-   npm start
-   ```
-
-5. **Open in browser**
-   - Navigate to `http://localhost:3000`
-   - Start adding memories to the map!
-
-## 📖 How to Use
-
-1. **Add a Memory**:
-   - Fill in member name, title, and description
-   - Optionally upload an image or trajectory file
-   - Click "Click Map to Add Location"
-   - Click anywhere on the map to set the memory location
-   - Click "Save Memory"
-
-2. **View Memories**:
-   - Click on any blue marker to see the memory popup
-   - Use the memories list in the sidebar to navigate to specific memories
-   - Trajectory paths will appear as red lines on the map
-
-3. **Manage Memories**:
-   - View all memories in the sidebar list
-   - Click on a memory in the list to fly to its location
-   - Use "Clear All Memories" to reset the map
-
-## 🛠️ Technical Details
-
-- **Frontend**: Pure HTML, CSS, JavaScript (no heavy frameworks)
-- **Mapping**: Mapbox GL JS v2.15.0
-- **Storage**: Browser localStorage for persistence
-- **File Support**: FileReader API for image and trajectory processing
-- **Responsive**: CSS Grid and Flexbox for mobile-friendly design
-
-## 📂 Project Structure
+## 📁 Project Structure
 
 ```
 UAL_M2/
-├── index.html          # Main application interface
-├── styles.css          # All styling and responsive design
-├── script.js           # Core functionality and map integration
-├── package.json        # Dependencies and scripts
-├── README.md           # This file
-├── README-SETUP.md     # Detailed setup instructions
-└── .gitignore         # Git ignore patterns
+├── enhanced-index.html          # Main application entry
+├── css/
+│   ├── enhanced-styles.css      # Enhanced UI styles
+│   └── styles.css               # Base styles
+├── js/
+│   ├── data-manager.js          # User & data management
+│   └── enhanced-memory-map.js   # Main application logic
+├── data/
+│   ├── data-structure.json      # Data structure reference
+│   ├── memories/                # Memory data storage
+│   ├── users/                   # User data storage
+│   └── uploads/                 # User uploaded files
+└── README.md                    # This file
 ```
 
-## 🔧 Configuration
+## 🔧 Technical Implementation
 
-The application requires a Mapbox access token to function. See [README-SETUP.md](README-SETUP.md) for:
-- How to get a free Mapbox token
-- Token configuration options
-- Environment setup details
+### Frontend Stack
+- **Mapbox GL JS v2.15.0** - Interactive mapping
+- **Vanilla JavaScript** - No external frameworks
+- **LocalStorage API** - Data persistence
+- **CSS Grid/Flexbox** - Responsive layout
 
-## 🎨 Design Philosophy
+### Data Management
+- User registration and color assignment
+- Memory data with contributor attribution
+- File upload handling for images
+- Persistent user sessions
 
-This project follows the requirement to "not be code-heavy or too complicated":
-- **Minimal Dependencies**: Only uses Mapbox GL JS, no heavy frameworks
-- **Simple Architecture**: Single HTML file with clear separation of concerns
-- **Intuitive Interface**: Clean, straightforward user experience
-- **Progressive Enhancement**: Works without JavaScript for basic content
-- **Local-First**: No server required, everything runs in the browser
+### Color System
+- 10 predefined colors for contributors
+- Automatic color assignment on registration
+- Visual grouping of contributions by color
+- Consistent color usage across sessions
 
-## 🌟 Use Cases
+## 🎨 User Experience
 
-- **Organizational Memory**: Document team activities and locations
-- **Personal Journeys**: Track important places and experiences
-- **Educational Projects**: Map learning experiences and field trips
-- **Community Mapping**: Collect and share local stories and places
-- **Heritage Preservation**: Document historical locations and memories
+1. **First Visit**: Register to get your personal color
+2. **Returning User**: Quick login with email
+3. **Memory Creation**: Add memories with your color marker
+4. **Memory Viewing**: Browse memories by graduated member
+5. **Session Persistence**: Automatic login on return visits
 
-## 📱 Browser Compatibility
+## 🌐 Browser Compatibility
 
 - Chrome 60+
 - Firefox 55+
-- Safari 12+
+- Safari 11+
 - Edge 79+
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit issues, feature requests, or pull requests.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the package.json file for details.
+This project is part of the Urban Analytics Lab (UAL) at NUS and is intended for internal use and research purposes.
 
-## 🙏 Acknowledgments
+## 🤝 Contributing
 
-- Built with [Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/)
-- Inspired by the need to preserve organizational memory and experiences
-- Designed for simplicity and accessibility
+This is an internal lab project. For contributions or issues, please contact the UAL team.
+
+---
+
+*Built with ❤️ for the Urban Analytics Lab community*
