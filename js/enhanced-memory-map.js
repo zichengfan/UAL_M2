@@ -786,6 +786,68 @@ class EnhancedMemoryMap {
         this.markers.get(memory.targetUserId).push({ memory, marker });
     }
 
+    async addTrajectoryToMap(memory) {
+        // Handle inline trajectory data (legacy/fallback)
+        if (memory.trajectory) {
+            this.addTrajectoryLayer(memory, memory.trajectory);
+            return;
+        }
+        
+        // Handle trajectory file paths (new approach)
+        if (memory.media && memory.media.trajectories && memory.media.trajectories.length > 0) {
+            for (const trajectoryPath of memory.media.trajectories) {
+                try {
+                    // Load trajectory from file
+                    const response = await fetch(`http://localhost:8000/${trajectoryPath}`);
+                    if (response.ok) {
+                        const trajectoryData = await response.json();
+                        this.addTrajectoryLayer(memory, trajectoryData);
+                    } else {
+                        console.warn(`Failed to load trajectory from ${trajectoryPath}`);
+                    }
+                } catch (error) {
+                    console.error(`Error loading trajectory:`, error);
+                }
+            }
+        }
+    }
+
+    addTrajectoryLayer(memory, trajectoryData) {
+        const trajectoryId = `trajectory-${memory.id || Date.now()}`;
+        
+        // Check if source already exists
+        if (this.map.getSource(trajectoryId)) {
+            return;
+        }
+        
+        // Add trajectory source
+        this.map.addSource(trajectoryId, {
+            type: 'geojson',
+            data: {
+                type: 'Feature',
+                geometry: trajectoryData
+            }
+        });
+        
+        // Add trajectory layer
+        this.map.addLayer({
+            id: trajectoryId,
+            type: 'line',
+            source: trajectoryId,
+            layout: {
+                'line-join': 'round',
+                'line-cap': 'round'
+            },
+            paint: {
+                'line-color': memory.contributorColor || '#888',
+                'line-width': 3,
+                'line-opacity': 0.7
+            }
+        });
+        
+        console.log(`Added trajectory layer: ${trajectoryId}`);
+    }
+
     createPopupContent(memory) {
         const date = new Date(memory.timestamp).toLocaleDateString();
         
@@ -798,8 +860,21 @@ class EnhancedMemoryMap {
         content += '</div>';
         content += '<div class="popup-description">' + memory.description + '</div>';
         
+        // Handle images (both file paths and base64)
         if (memory.media && memory.media.images && memory.media.images.length > 0) {
-            content += '<img src="' + memory.media.images[0] + '" alt="Memory image" class="popup-image">';
+            const imageSrc = memory.media.images[0];
+            // Check if it's a file path or base64
+            const imageUrl = imageSrc.startsWith('uploads/') 
+                ? `http://localhost:8000/${imageSrc}` 
+                : imageSrc;
+            content += '<img src="' + imageUrl + '" alt="Memory image" class="popup-image">';
+        }
+        
+        // Show trajectory info if present
+        if (memory.media && memory.media.trajectories && memory.media.trajectories.length > 0) {
+            content += '<div class="popup-info">🛤️ Trajectory included</div>';
+        } else if (memory.trajectory) {
+            content += '<div class="popup-info">🛤️ Trajectory included</div>';
         }
         
         if (memory.tags && memory.tags.length > 0) {
