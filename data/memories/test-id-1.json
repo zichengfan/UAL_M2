@@ -1,0 +1,13 @@
+{
+  "id": "test-id-1",
+  "title": "Test Memory",
+  "description": "Testing upload",
+  "media": {
+    "images": [
+      "uploads/images/3c456425-48a6-4f47-8607-3b14a38cffb7.png"
+    ],
+    "trajectories": [
+      "uploads/trajectories/6d5b607d-fcaa-47cb-91dc-c3a7f44096fe.json"
+    ]
+  }
+}

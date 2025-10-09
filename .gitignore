@@ -39,4 +39,9 @@ tmp/
 temp/
 
 # Uploaded files (user-generated content)
-data/uploads/
+# Keep directory structure but ignore uploaded files
+data/uploads/images/*
+data/uploads/trajectories/*
+!data/uploads/images/.gitkeep
+!data/uploads/trajectories/.gitkeep
+!data/uploads/.gitkeep
