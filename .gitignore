@@ -37,3 +37,6 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Uploaded files (user-generated content)
+data/uploads/

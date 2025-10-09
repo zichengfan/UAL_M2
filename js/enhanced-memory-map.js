@@ -662,26 +662,48 @@ class EnhancedMemoryMap {
         // Handle image if present
         if (this.currentImageFile) {
             console.log('🖼️ Processing image file...');
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                memory.media.images.push(e.target.result);
-                console.log('✅ Image added to memory');
-                await this.finalizeMemorySave(memory);
-            };
-            reader.readAsDataURL(this.currentImageFile);
-        } else {
-            console.log('📝 No image file, proceeding to finalize...');
-            await this.finalizeMemorySave(memory);
+            try {
+                const imagePath = await this.uploadImageToServer(this.currentImageFile);
+                memory.media.images.push(imagePath);
+                console.log('✅ Image uploaded to server:', imagePath);
+            } catch (error) {
+                console.error('❌ Failed to upload image:', error);
+                // Fall back to base64 if upload fails
+                const reader = new FileReader();
+                await new Promise((resolve) => {
+                    reader.onload = (e) => {
+                        memory.media.images.push(e.target.result);
+                        console.log('⚠️ Using base64 fallback for image');
+                        resolve();
+                    };
+                    reader.readAsDataURL(this.currentImageFile);
+                });
+            }
         }
+        
+        console.log('📝 Proceeding to finalize save...');
+        await this.finalizeMemorySave(memory);
     }
 
     async finalizeMemorySave(memory) {
         console.log('🏁 Finalizing memory save...', memory);
         
-        // Add trajectory data if present
+        // Upload trajectory data if present
         if (this.currentTrajectoryData) {
-            memory.trajectory = this.currentTrajectoryData;
-            console.log('🛤️ Added trajectory data');
+            try {
+                console.log('🛤️ Uploading trajectory data...');
+                const trajectoryPath = await this.uploadTrajectoryToServer(
+                    this.currentTrajectoryData,
+                    this.currentTrajectoryData.fileName || 'trajectory.json'
+                );
+                memory.media.trajectories.push(trajectoryPath);
+                console.log('✅ Trajectory uploaded to server:', trajectoryPath);
+            } catch (error) {
+                console.error('❌ Failed to upload trajectory:', error);
+                // Fall back to storing in memory object
+                memory.trajectory = this.currentTrajectoryData;
+                console.log('⚠️ Using inline trajectory data as fallback');
+            }
         }
 
         try {
@@ -857,6 +879,144 @@ class EnhancedMemoryMap {
         reader.readAsDataURL(file);
         
         this.validateForm();
+    }
+
+    handleTrajectoryUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validate file type
+        const validExtensions = ['.gpx', '.json', '.geojson'];
+        const fileName = file.name.toLowerCase();
+        const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+        
+        if (!isValid) {
+            alert('Please select a valid trajectory file (GPX, JSON, or GeoJSON).');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const content = e.target.result;
+                
+                // Parse based on file type
+                if (fileName.endsWith('.gpx')) {
+                    // Parse GPX (XML format)
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(content, 'text/xml');
+                    
+                    // Extract coordinates from GPX
+                    const trkpts = xmlDoc.getElementsByTagName('trkpt');
+                    const coordinates = [];
+                    for (let i = 0; i < trkpts.length; i++) {
+                        const lat = parseFloat(trkpts[i].getAttribute('lat'));
+                        const lon = parseFloat(trkpts[i].getAttribute('lon'));
+                        coordinates.push([lon, lat]);
+                    }
+                    
+                    this.currentTrajectoryData = {
+                        type: 'LineString',
+                        coordinates: coordinates,
+                        format: 'gpx',
+                        fileName: file.name
+                    };
+                    
+                    console.log(`Parsed GPX trajectory with ${coordinates.length} points`);
+                } else {
+                    // Parse JSON/GeoJSON
+                    const data = JSON.parse(content);
+                    
+                    // Handle different GeoJSON structures
+                    if (data.type === 'FeatureCollection' && data.features && data.features.length > 0) {
+                        this.currentTrajectoryData = data.features[0].geometry;
+                    } else if (data.type === 'Feature') {
+                        this.currentTrajectoryData = data.geometry;
+                    } else if (data.type === 'LineString' || data.type === 'MultiLineString') {
+                        this.currentTrajectoryData = data;
+                    } else {
+                        throw new Error('Unsupported GeoJSON format');
+                    }
+                    
+                    this.currentTrajectoryData.format = 'geojson';
+                    this.currentTrajectoryData.fileName = file.name;
+                    
+                    console.log(`Parsed GeoJSON trajectory: ${this.currentTrajectoryData.type}`);
+                }
+                
+                // Show confirmation
+                alert(`Trajectory file "${file.name}" loaded successfully!`);
+                this.validateForm();
+                
+            } catch (error) {
+                console.error('Error parsing trajectory file:', error);
+                alert(`Failed to parse trajectory file: ${error.message}`);
+                this.currentTrajectoryData = null;
+            }
+        };
+        
+        reader.readAsText(file);
+    }
+
+    async uploadImageToServer(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const base64Data = e.target.result;
+                    const extension = file.name.split('.').pop().toLowerCase();
+                    
+                    const response = await fetch('http://localhost:3001/api/upload/image', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            data: base64Data,
+                            extension: extension
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    resolve(result.path);
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async uploadTrajectoryToServer(trajectoryData, fileName) {
+        try {
+            const extension = fileName.split('.').pop().toLowerCase();
+            
+            const response = await fetch('http://localhost:3001/api/upload/trajectory', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    data: trajectoryData,
+                    extension: extension === 'gpx' ? 'json' : extension
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            return result.path;
+        } catch (error) {
+            console.error('Failed to upload trajectory:', error);
+            throw error;
+        }
     }
 
     toggleAddMarkerMode() {

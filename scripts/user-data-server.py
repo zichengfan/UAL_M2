@@ -7,6 +7,8 @@ Handles saving and loading user registration data to/from data/users/ directory
 import json
 import os
 import sys
+import base64
+import uuid
 from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -21,6 +23,9 @@ class UserDataHandler(BaseHTTPRequestHandler):
         self.data_dir = data_dir
         self.users_dir = os.path.join(data_dir, "users")
         self.memories_dir = os.path.join(data_dir, "memories")
+        self.uploads_dir = os.path.join(data_dir, "uploads")
+        self.images_dir = os.path.join(self.uploads_dir, "images")
+        self.trajectories_dir = os.path.join(self.uploads_dir, "trajectories")
         super().__init__(*args, **kwargs)
     
     def do_OPTIONS(self):
@@ -119,6 +124,75 @@ class UserDataHandler(BaseHTTPRequestHandler):
                     "message": f"Saved {len(memories_data)} memories",
                     "file": all_memories_file
                 }).encode())
+                
+            elif self.path == '/api/upload/image':
+                # Handle image upload
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length)
+                upload_data = json.loads(post_data.decode('utf-8'))
+                
+                # Create uploads directory if it doesn't exist
+                os.makedirs(self.images_dir, exist_ok=True)
+                
+                # Generate unique filename
+                file_extension = upload_data.get('extension', 'png')
+                file_id = str(uuid.uuid4())
+                filename = f"{file_id}.{file_extension}"
+                file_path = os.path.join(self.images_dir, filename)
+                
+                # Decode and save base64 image
+                image_data = upload_data.get('data', '')
+                if ',' in image_data:
+                    # Remove data URL prefix if present
+                    image_data = image_data.split(',', 1)[1]
+                
+                with open(file_path, 'wb') as f:
+                    f.write(base64.b64decode(image_data))
+                
+                logger.info(f"Saved image to {file_path}")
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "status": "success",
+                    "filename": filename,
+                    "path": f"uploads/images/{filename}"
+                }).encode())
+                
+            elif self.path == '/api/upload/trajectory':
+                # Handle trajectory upload
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length)
+                upload_data = json.loads(post_data.decode('utf-8'))
+                
+                # Create uploads directory if it doesn't exist
+                os.makedirs(self.trajectories_dir, exist_ok=True)
+                
+                # Generate unique filename
+                file_extension = upload_data.get('extension', 'json')
+                file_id = str(uuid.uuid4())
+                filename = f"{file_id}.{file_extension}"
+                file_path = os.path.join(self.trajectories_dir, filename)
+                
+                # Save trajectory data
+                trajectory_data = upload_data.get('data', {})
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(trajectory_data, f, indent=2, ensure_ascii=False)
+                
+                logger.info(f"Saved trajectory to {file_path}")
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "status": "success",
+                    "filename": filename,
+                    "path": f"uploads/trajectories/{filename}"
+                }).encode())
+                
             else:
                 self.send_response(404)
                 self.end_headers()
@@ -235,8 +309,14 @@ def main():
     # Ensure data directories exist
     users_dir = os.path.join(data_dir, "users")
     memories_dir = os.path.join(data_dir, "memories")
+    uploads_dir = os.path.join(data_dir, "uploads")
+    images_dir = os.path.join(uploads_dir, "images")
+    trajectories_dir = os.path.join(uploads_dir, "trajectories")
+    
     os.makedirs(users_dir, exist_ok=True)
     os.makedirs(memories_dir, exist_ok=True)
+    os.makedirs(images_dir, exist_ok=True)
+    os.makedirs(trajectories_dir, exist_ok=True)
     
     handler_class = create_handler(data_dir)
     server = HTTPServer(('localhost', port), handler_class)
@@ -244,10 +324,13 @@ def main():
     logger.info(f"Starting UAL M2 User Data Server on port {port}")
     logger.info(f"Users directory: {os.path.abspath(users_dir)}")
     logger.info(f"Memories directory: {os.path.abspath(memories_dir)}")
+    logger.info(f"Uploads directory: {os.path.abspath(uploads_dir)}")
     logger.info("API endpoints:")
     logger.info("  POST /api/users/save - Save individual user")
     logger.info("  POST /api/users/save-all - Save all users")
     logger.info("  POST /api/memories/save-all - Save all memories")
+    logger.info("  POST /api/upload/image - Upload image file")
+    logger.info("  POST /api/upload/trajectory - Upload trajectory file")
     logger.info("  GET  /api/users/list - List all users")
     logger.info("  GET  /api/memories/list - List all memories")
     logger.info("  GET  /api/users/{id} - Get specific user")
