@@ -1,0 +1,14 @@
+{
+  "id": "test-memory-1",
+  "title": "Test Memory with Uploads",
+  "description": "This memory has uploaded files",
+  "media": {
+    "images": [
+      ""
+    ],
+    "trajectories": [
+      ""
+    ]
+  },
+  "timestamp": "2025-10-09T07:05:24+00:00"
+}
