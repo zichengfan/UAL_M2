@@ -1,0 +1,28 @@
+{
+  "1760099188660": {
+    "id": "1760099188660",
+    "title": "3D GeoInfo & Smart Data Smart Cities",
+    "description": "Conference and Japan trip!",
+    "targetUserId": "user001",
+    "contributorName": "Matias Quintana",
+    "contributorEmail": "matias.quintana@sec.ethz.ch",
+    "coordinates": [
+      139.9704438465053,
+      35.875189151899875
+    ],
+    "timestamp": "2025-10-10T12:26:28.660Z",
+    "type": "location_memory",
+    "media": {
+      "images": [
+        "uploads/images/5718c584-18a7-4e93-82c8-d36ac2b815e0.jpeg"
+      ],
+      "trajectories": []
+    },
+    "tags": [
+      "research"
+    ],
+    "isPublic": true,
+    "registeredContributorId": "matias.quintana@sec.ethz.ch",
+    "contributorColor": "#f43d3d"
+  }
+}
