@@ -12,12 +12,6 @@ A distributed memory collection platform for lab members to contribute and prese
 - **Persistent attribution** with color-coded contributions
 
 
-### Collaboration Features
-- **Individual color assignment** for contribution tracking
-- **Branch-based workflows** for parallel contribution
-- **Conflict-free data merging** through structured JSON
-- **Attribution preservation** across merges
-
 ## 🚀 Quick Start Guide
 
 ### For Individual Contributors
@@ -38,6 +32,7 @@ A distributed memory collection platform for lab members to contribute and prese
 
 3. **Share**
    ```bash
+   # Create a branch for your contribution and leave the main branch empty
    git checkout -b contributions/yourname
    git add data/
    git commit -m "Add memories by [name]"
