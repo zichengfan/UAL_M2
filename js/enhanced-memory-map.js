@@ -14,6 +14,7 @@ class EnhancedMemoryMap {
         this.currentCoordinates = null;
         this.tempMarker = null;
         this.currentRegisteredContributor = null; // Currently logged in contributor
+        this.visualizationMode = 'colored-dots'; // 'colored-dots' or 'image-thumbnails'
         
         // Don't initialize immediately - wait for DOM
         console.log('EnhancedMemoryMap constructor completed');
@@ -41,14 +42,14 @@ class EnhancedMemoryMap {
             console.log('✅ Event listeners set up successfully');
             
             // Load data asynchronously (non-blocking)
-            console.log('� Loading users and memories...');
+            console.log('📊 Loading users and memories...');
             Promise.all([
                 this.userManager.loadUsers().catch(err => console.warn('User loading error:', err)),
                 this.dataManager.loadMemories().catch(err => console.warn('Memory loading error:', err))
-            ]).then(() => {
+            ]).then(async () => {
                 console.log('✅ Data loaded, setting up UI...');
                 this.setupUserInterface();
-                this.loadInitialData();
+                await this.loadInitialData();
                 console.log('✅ All components ready');
             });
             
@@ -107,20 +108,28 @@ class EnhancedMemoryMap {
     }
 
     setupUserInterface() {
-        console.log('Setting up user interface...');
+        console.log('🎨 Setting up user interface...');
+        
+        // Ensure we have sample users loaded
+        let graduatedMembers = this.userManager.getGraduatedMembers();
+        console.log('📊 Initial graduated members found:', graduatedMembers);
+        
+        if (graduatedMembers.length === 0) {
+            console.log('⚠️ No graduated members found, loading sample users...');
+            this.userManager.loadSampleUsers();
+            graduatedMembers = this.userManager.getGraduatedMembers();
+            console.log('✅ After loading samples, graduated members:', graduatedMembers);
+        }
         
         // Create user switcher
         this.createUserSwitcher();
         
-        // Set default user
-        const graduatedMembers = this.userManager.getGraduatedMembers();
-        console.log('Graduated members found:', graduatedMembers);
-        
+        // Set default user if available
         if (graduatedMembers.length > 0) {
-            console.log('Setting default user to:', graduatedMembers[0].id);
+            console.log('🎯 Setting default user to:', graduatedMembers[0].id);
             this.switchToUser(graduatedMembers[0].id);
         } else {
-            console.warn('No graduated members found');
+            console.warn('❌ Still no graduated members found after loading samples');
         }
     }
 
@@ -196,12 +205,17 @@ class EnhancedMemoryMap {
     }
 
     switchToUser(userId) {
-        console.log(`Switching to user: ${userId}`);
+        console.log(`🔄 Switching to user: ${userId}`);
+        console.log('📊 User switching debug:');
+        console.log('  - Received userId:', userId);
+        console.log('  - userId type:', typeof userId);
+        console.log('  - Available users:', this.userManager.getGraduatedMembers().map(u => u.id));
         
         this.currentTargetUser = userId;
         this.userManager.setCurrentTargetUser(userId);
         
-        console.log('currentTargetUser set to:', this.currentTargetUser);
+        console.log('✅ currentTargetUser set to:', this.currentTargetUser);
+        console.log('✅ UserManager currentTargetUser:', this.userManager.getCurrentTargetUser());
         
         // Update UI
         this.updateCurrentUserDisplay(userId);
@@ -218,6 +232,8 @@ class EnhancedMemoryMap {
         
         // Trigger form validation to update button state
         this.validateForm();
+        
+        console.log('🎯 User switch completed. Current target user:', this.currentTargetUser);
     }
 
     updateCurrentUserDisplay(userId) {
@@ -258,13 +274,56 @@ class EnhancedMemoryMap {
         if (!this.currentTargetUser) return;
         
         const userMemories = this.dataManager.getMemoriesForUser(this.currentTargetUser);
-        console.log(`Loading ${userMemories.length} memories for user ${this.currentTargetUser}`);
+        console.log(`📊 Loading memories for user ${this.currentTargetUser}:`);
+        console.log(`  - Total memories: ${userMemories.length}`);
+        
+        // Count memories by visualization mode
+        let visibleMemories = 0;
+        let skippedMemories = 0;
         
         userMemories.forEach(memory => {
-            this.addMemoryToMap(memory);
+            if (this.visualizationMode === 'image-thumbnails') {
+                // Check if memory has images
+                if (memory.media && memory.media.images && memory.media.images.length > 0) {
+                    this.addMemoryToMap(memory);
+                    visibleMemories++;
+                } else {
+                    skippedMemories++;
+                }
+            } else {
+                // Colored dots mode - show all memories
+                this.addMemoryToMap(memory);
+                visibleMemories++;
+            }
         });
         
+        console.log(`  - Visible in ${this.visualizationMode}: ${visibleMemories}`);
+        if (skippedMemories > 0) {
+            console.log(`  - Skipped (no images): ${skippedMemories}`);
+        }
+        
+        // Update mode status with counts
+        this.updateModeStatusWithCounts(visibleMemories, skippedMemories, userMemories.length);
+        
         this.renderMemoriesList();
+    }
+
+    updateModeStatusWithCounts(visible, skipped, total) {
+        const statusElement = document.getElementById('mode-status');
+        if (!statusElement) return;
+        
+        let statusText = '';
+        if (this.visualizationMode === 'colored-dots') {
+            statusText = `Currently showing: <strong>Colored Dots Mode</strong> (${visible} memories)`;
+        } else {
+            statusText = `Currently showing: <strong>Image Thumbnails Mode</strong> (${visible} with images`;
+            if (skipped > 0) {
+                statusText += `, ${skipped} hidden`;
+            }
+            statusText += `)`;
+        }
+        
+        statusElement.innerHTML = statusText;
     }
 
     clearAllMarkers() {
@@ -301,26 +360,28 @@ class EnhancedMemoryMap {
             marker.remove();
         });
         
+        // Create lab marker element with simpler styling similar to colored dots
         const labMarkerElement = document.createElement('div');
         labMarkerElement.className = 'lab-marker';
         labMarkerElement.innerHTML = '🏠';
         
-        Object.assign(labMarkerElement.style, {
-            width: '30px',
-            height: '30px',
-            fontSize: '24px',
-            cursor: 'pointer',
-            textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-            margin: '0',
-            padding: '0',
-            border: 'none',
-            background: 'transparent',
-            zIndex: '1000'
-        });
+        // Use simple CSS styling similar to colored dot markers
+        labMarkerElement.style.cssText = `
+            width: 30px;
+            height: 30px;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            background: rgba(255,255,255,0.9);
+            border-radius: 50%;
+            border: 2px solid #007bff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        `;
+
 
         const labPopupContent = `
             <div class="popup-content lab-popup">
@@ -338,11 +399,8 @@ class EnhancedMemoryMap {
             closeOnClick: false
         }).setHTML(labPopupContent);
 
-        const labMarker = new mapboxgl.Marker({
-            element: labMarkerElement,
-            anchor: 'center',
-            offset: [0, 0]
-        })
+        // Create marker using the same pattern as memory markers
+        const labMarker = new mapboxgl.Marker(labMarkerElement)
             .setLngLat([103.770336, 1.2966])
             .setPopup(labPopup)
             .addTo(this.map);
@@ -350,24 +408,7 @@ class EnhancedMemoryMap {
         // Store reference to lab marker
         this.labMarker = labMarker;
 
-        // Add CSS for lab marker
-        if (!document.getElementById('lab-marker-styles')) {
-            const style = document.createElement('style');
-            style.id = 'lab-marker-styles';
-            style.textContent = `
-                @keyframes pulse {
-                    0% { transform: scale(1); }
-                    50% { transform: scale(1.1); }
-                    100% { transform: scale(1); }
-                }
-                .lab-marker {
-                    animation: pulse 2s infinite;
-                }
-            `;
-            document.head.appendChild(style);
-        }
-
-        console.log('Urban Analytics Lab marker added');
+        console.log('✅ Urban Analytics Lab marker added at coordinates [103.770336, 1.2966]');
     }
 
     setupEventListeners() {
@@ -414,6 +455,9 @@ class EnhancedMemoryMap {
 
         // Registration event listeners
         this.setupRegistrationEventListeners();
+
+        // Visualization mode switcher
+        this.setupVisualizationSwitcher();
     }
 
     setupRegistrationEventListeners() {
@@ -443,12 +487,70 @@ class EnhancedMemoryMap {
         });
     }
 
-    loadInitialData() {
+    setupVisualizationSwitcher() {
+        // Mode button event listeners
+        const modeButtons = document.querySelectorAll('.mode-btn');
+        modeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const mode = btn.getAttribute('data-mode');
+                this.switchVisualizationMode(mode);
+            });
+        });
+    }
+
+    switchVisualizationMode(mode) {
+        console.log(`🎨 Switching visualization mode to: ${mode}`);
+        
+        // Update internal state
+        this.visualizationMode = mode;
+        
+        // Update button states
+        const modeButtons = document.querySelectorAll('.mode-btn');
+        modeButtons.forEach(btn => {
+            if (btn.getAttribute('data-mode') === mode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        
+        // Update status display
+        const statusElement = document.getElementById('mode-status');
+        if (statusElement) {
+            const modeName = mode === 'colored-dots' ? 'Colored Dots Mode' : 'Image Thumbnails Mode';
+            statusElement.innerHTML = `Currently showing: <strong>${modeName}</strong>`;
+        }
+        
+        // Refresh all markers with new visualization mode
+        this.refreshAllMarkers();
+        
+        console.log(`✅ Visualization mode switched to: ${mode}`);
+    }
+
+    refreshAllMarkers() {
+        console.log('🔄 Refreshing all markers with new visualization mode...');
+        
+        // Clear all existing markers
+        this.clearAllMarkers();
+        
+        // Reload memories for current user with new visualization mode
+        if (this.currentTargetUser) {
+            this.loadMemoriesForCurrentUser();
+        }
+        
+        console.log('✅ All markers refreshed');
+    }
+
+    async loadInitialData() {
+        console.log('📊 Loading initial data...');
+        
         // Load any existing memories
         this.renderMemoriesList();
         
         // Check if user is already logged in
         this.checkExistingSession();
+        
+        console.log('✅ Initial data loaded successfully');
     }
 
     checkExistingSession() {
@@ -607,6 +709,10 @@ class EnhancedMemoryMap {
     async saveMemory() {
         console.log('🔍 Starting saveMemory process...');
         
+        // Show progress bar and disable save button
+        this.showSaveProgress();
+        this.updateProgress(10, 'Validating form data...');
+        
         const contributorName = document.getElementById('contributor-name').value.trim();
         const contributorEmail = document.getElementById('contributor-email').value.trim();
         const memoryTitle = document.getElementById('memory-title').value.trim();
@@ -623,73 +729,108 @@ class EnhancedMemoryMap {
             currentTargetUser: this.currentTargetUser
         });
         
+        // 详细调试信息
+        console.log('🔍 Debugging validation:');
+        console.log('  - currentCoordinates:', this.currentCoordinates);
+        console.log('  - currentTargetUser:', this.currentTargetUser);
+        console.log('  - coordinatesValid:', !!this.currentCoordinates);
+        console.log('  - targetUserValid:', !!this.currentTargetUser);
+        console.log('  - graduatedMembers:', this.userManager.getGraduatedMembers());
+        console.log('  - isAddingMarker mode:', this.isAddingMarker);
+        
         if (!this.currentCoordinates || !this.currentTargetUser) {
             console.log('❌ Missing coordinates or target user');
-            alert('Please add a location and select a target user first.');
+            this.hideSaveProgress();
+            
+            if (!this.currentTargetUser) {
+                console.log('❌ Target user not set. Available users:', this.userManager.getGraduatedMembers().map(u => u.id));
+                alert('Please select a graduated member first by clicking on one of the member buttons above.');
+            } else if (!this.currentCoordinates) {
+                console.log('❌ Coordinates not set. Click "Click Map to Add Location" button first, then click on the map.');
+                alert('Please add a location first:\n1. Click the "Click Map to Add Location" button\n2. Then click anywhere on the map to place a marker');
+            } else {
+                alert('Please add a location and select a target user first.');
+            }
             return;
         }
 
-        // Prepare memory object with contributor information
-        const memory = {
-            title: memoryTitle,
-            description: memoryText,
-            targetUserId: this.currentTargetUser,
-            contributorName: contributorName,
-            contributorEmail: contributorEmail,
-            coordinates: this.currentCoordinates,
-            timestamp: new Date().toISOString(),
-            type: 'location_memory',
-            media: {
-                images: [],
-                trajectories: []
-            },
-            tags: memoryTags ? memoryTags.split(',').map(tag => tag.trim()) : [],
-            isPublic: true
-        };
+        try {
+            this.updateProgress(20, 'Preparing memory data...');
 
-        console.log('💾 Memory object prepared:', memory);
-
-        // Add registered contributor information if available
-        if (this.currentRegisteredContributor) {
-            memory.registeredContributorId = this.currentRegisteredContributor.id;
-            memory.contributorColor = this.currentRegisteredContributor.color;
-            
-            // Save session for next visit
-            localStorage.setItem('ual_m2_last_contributor_email', this.currentRegisteredContributor.email);
-            console.log('👤 Added registered contributor info:', this.currentRegisteredContributor);
-        }
-
-        // Handle image if present
-        if (this.currentImageFile) {
-            console.log('🖼️ Processing image file...');
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                memory.media.images.push(e.target.result);
-                console.log('✅ Image added to memory');
-                await this.finalizeMemorySave(memory);
+            // Prepare memory object with contributor information
+            const memory = {
+                title: memoryTitle,
+                description: memoryText,
+                targetUserId: this.currentTargetUser,
+                contributorName: contributorName,
+                contributorEmail: contributorEmail,
+                coordinates: this.currentCoordinates,
+                timestamp: new Date().toISOString(),
+                type: 'location_memory',
+                media: {
+                    images: [],
+                    trajectories: []
+                },
+                tags: memoryTags ? memoryTags.split(',').map(tag => tag.trim()) : [],
+                isPublic: true
             };
-            reader.readAsDataURL(this.currentImageFile);
-        } else {
-            console.log('📝 No image file, proceeding to finalize...');
+
+            console.log('💾 Memory object prepared:', memory);
+
+            // Add registered contributor information if available
+            if (this.currentRegisteredContributor) {
+                memory.registeredContributorId = this.currentRegisteredContributor.id;
+                memory.contributorColor = this.currentRegisteredContributor.color;
+                
+                // Save session for next visit
+                localStorage.setItem('ual_m2_last_contributor_email', this.currentRegisteredContributor.email);
+                console.log('👤 Added registered contributor info:', this.currentRegisteredContributor);
+            }
+
+            this.updateProgress(40, 'Processing uploads...');
+
+            // Handle image if present
+            if (this.currentImageFile) {
+                console.log('🖼️ Processing image file...');
+                this.updateProgress(50, 'Uploading image...');
+                const imagePath = await this.uploadImageToServer(this.currentImageFile);
+                memory.media.images.push(imagePath);
+                console.log('✅ Image uploaded to server:', imagePath);
+            }
+            
+            console.log('📝 Proceeding to finalize save...');
             await this.finalizeMemorySave(memory);
+            
+        } catch (error) {
+            console.error('❌ Error in saveMemory:', error);
+            this.hideSaveProgress();
+            alert('Failed to save memory: ' + error.message);
         }
     }
 
     async finalizeMemorySave(memory) {
         console.log('🏁 Finalizing memory save...', memory);
         
-        // Add trajectory data if present
+        // Upload trajectory data if present
         if (this.currentTrajectoryData) {
-            memory.trajectory = this.currentTrajectoryData;
-            console.log('🛤️ Added trajectory data');
+            console.log('🛤️ Uploading trajectory data...');
+            this.updateProgress(60, 'Uploading trajectory data...');
+            const trajectoryPath = await this.uploadTrajectoryToServer(
+                this.currentTrajectoryData,
+                this.currentTrajectoryData.fileName || 'trajectory.json'
+            );
+            memory.media.trajectories.push(trajectoryPath);
+            console.log('✅ Trajectory uploaded to server:', trajectoryPath);
         }
 
         try {
+            this.updateProgress(70, 'Saving memory to server...');
             console.log('💾 Calling dataManager.saveMemory...');
             // Save to data manager
             const memoryId = await this.dataManager.saveMemory(memory);
             console.log(`✅ Memory saved with ID: ${memoryId}`);
             
+            this.updateProgress(90, 'Updating map display...');
             // Add marker to map
             console.log('🗺️ Adding memory to map...');
             this.addMemoryToMap(memory);
@@ -705,36 +846,97 @@ class EnhancedMemoryMap {
             console.log('🔄 Resetting form...');
             this.resetForm();
             
+            this.updateProgress(100, 'Save completed!');
             console.log('🎉 Memory save process completed successfully!');
+            
+            // Hide progress bar after a short delay
+            setTimeout(() => {
+                this.hideSaveProgress();
+                alert('Memory saved successfully!');
+            }, 500);
             
         } catch (error) {
             console.error('❌ Error in finalizeMemorySave:', error);
-            alert('Failed to save memory. Please try again.');
+            this.hideSaveProgress();
+            alert('Failed to save memory: ' + error.message);
+            throw error;
         }
         
         // Update memories list
         this.renderMemoriesList();
+    }
+
+    // Progress bar helper methods
+    showSaveProgress() {
+        const progressContainer = document.getElementById('save-progress-container');
+        const saveBtn = document.getElementById('save-memory-btn');
         
-        alert('Memory saved successfully!');
+        if (progressContainer) {
+            progressContainer.style.display = 'block';
+        }
+        
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+        }
+    }
+
+    hideSaveProgress() {
+        const progressContainer = document.getElementById('save-progress-container');
+        const saveBtn = document.getElementById('save-memory-btn');
+        const progressBar = document.getElementById('save-progress-bar');
+        
+        if (progressContainer) {
+            progressContainer.style.display = 'none';
+        }
+        
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Memory';
+        }
+        
+        if (progressBar) {
+            progressBar.style.width = '0%';
+            progressBar.setAttribute('aria-valuenow', '0');
+        }
+    }
+
+    updateProgress(percentage, text) {
+        const progressBar = document.getElementById('save-progress-bar');
+        const progressText = document.getElementById('progress-text');
+        
+        if (progressBar) {
+            progressBar.style.width = percentage + '%';
+            progressBar.setAttribute('aria-valuenow', percentage);
+        }
+        
+        if (progressText && text) {
+            progressText.textContent = text;
+        }
     }
 
     addMemoryToMap(memory) {
-        // Create custom marker element
-        const markerElement = document.createElement('div');
-        markerElement.className = 'memory-marker';
-        
-        // Use contributor color if available, otherwise default blue
-        const markerColor = memory.contributorColor || '#007bff';
-        
-        markerElement.style.cssText = `
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background-color: ${markerColor};
-            border: 3px solid white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            cursor: pointer;
-        `;
+        // Check visualization mode and memory requirements
+        if (this.visualizationMode === 'image-thumbnails') {
+            // Only show memories that have images
+            if (!memory.media || !memory.media.images || memory.media.images.length === 0) {
+                console.log(`🖼️ Skipping memory "${memory.title}" - no images in thumbnail mode`);
+                return;
+            }
+        }
+
+        // Create marker based on visualization mode
+        let markerElement;
+        if (this.visualizationMode === 'colored-dots') {
+            markerElement = this.createColoredDotMarker(memory);
+        } else if (this.visualizationMode === 'image-thumbnails') {
+            markerElement = this.createThumbnailMarker(memory);
+        }
+
+        if (!markerElement) {
+            console.warn('Failed to create marker element for memory:', memory.title);
+            return;
+        }
 
         // Create popup content
         const popupContent = this.createPopupContent(memory);
@@ -742,7 +944,7 @@ class EnhancedMemoryMap {
         // Create popup
         const popup = new mapboxgl.Popup({
             offset: 25,
-            maxWidth: '300px',
+            maxWidth: '450px',
             className: 'enhanced-popup'
         }).setHTML(popupContent);
 
@@ -764,6 +966,140 @@ class EnhancedMemoryMap {
         this.markers.get(memory.targetUserId).push({ memory, marker });
     }
 
+    createColoredDotMarker(memory) {
+        const markerElement = document.createElement('div');
+        markerElement.className = 'memory-marker colored-dot-marker';
+        
+        // Use contributor color if available, otherwise default blue
+        const markerColor = memory.contributorColor || '#007bff';
+        
+        markerElement.style.cssText = `
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: ${markerColor};
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        `;
+
+        return markerElement;
+    }
+
+    createThumbnailMarker(memory) {
+        if (!memory.media || !memory.media.images || memory.media.images.length === 0) {
+            return null;
+        }
+
+        const markerElement = document.createElement('div');
+        markerElement.className = 'memory-marker thumbnail-marker';
+        
+        // Get the first image for thumbnail
+        const imageSrc = memory.media.images[0];
+        let imageUrl;
+        
+        if (imageSrc.startsWith('uploads/')) {
+            imageUrl = `http://localhost:8000/${imageSrc}`;
+        } else if (imageSrc.startsWith('data:')) {
+            imageUrl = imageSrc;
+        } else {
+            imageUrl = `http://localhost:8000/uploads/${imageSrc}`;
+        }
+
+        markerElement.style.cssText = `
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            cursor: pointer;
+            background-image: url('${imageUrl}');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: all 0.3s ease;
+        `;
+
+
+        // Add loading error handler
+        const testImg = new Image();
+        testImg.onload = () => {
+            console.log(`✅ Thumbnail loaded successfully for: ${memory.title}`);
+        };
+        testImg.onerror = () => {
+            console.warn(`❌ Failed to load thumbnail for: ${memory.title}`);
+            // Fallback to colored dot if image fails to load
+            markerElement.style.backgroundImage = 'none';
+            markerElement.style.backgroundColor = memory.contributorColor || '#007bff';
+        };
+        testImg.src = imageUrl;
+
+        return markerElement;
+    }
+
+    async addTrajectoryToMap(memory) {
+        // Handle inline trajectory data (legacy/fallback)
+        if (memory.trajectory) {
+            this.addTrajectoryLayer(memory, memory.trajectory);
+            return;
+        }
+        
+        // Handle trajectory file paths (new approach)
+        if (memory.media && memory.media.trajectories && memory.media.trajectories.length > 0) {
+            for (const trajectoryPath of memory.media.trajectories) {
+                try {
+                    // Load trajectory from file
+                    const response = await fetch(`http://localhost:8000/${trajectoryPath}`);
+                    if (response.ok) {
+                        const trajectoryData = await response.json();
+                        this.addTrajectoryLayer(memory, trajectoryData);
+                    } else {
+                        console.warn(`Failed to load trajectory from ${trajectoryPath}`);
+                    }
+                } catch (error) {
+                    console.error(`Error loading trajectory:`, error);
+                }
+            }
+        }
+    }
+
+    addTrajectoryLayer(memory, trajectoryData) {
+        const trajectoryId = `trajectory-${memory.id || Date.now()}`;
+        
+        // Check if source already exists
+        if (this.map.getSource(trajectoryId)) {
+            return;
+        }
+        
+        // Add trajectory source
+        this.map.addSource(trajectoryId, {
+            type: 'geojson',
+            data: {
+                type: 'Feature',
+                geometry: trajectoryData
+            }
+        });
+        
+        // Add trajectory layer
+        this.map.addLayer({
+            id: trajectoryId,
+            type: 'line',
+            source: trajectoryId,
+            layout: {
+                'line-join': 'round',
+                'line-cap': 'round'
+            },
+            paint: {
+                'line-color': memory.contributorColor || '#888',
+                'line-width': 3,
+                'line-opacity': 0.7
+            }
+        });
+        
+        console.log(`Added trajectory layer: ${trajectoryId}`);
+    }
+
     createPopupContent(memory) {
         const date = new Date(memory.timestamp).toLocaleDateString();
         
@@ -776,8 +1112,30 @@ class EnhancedMemoryMap {
         content += '</div>';
         content += '<div class="popup-description">' + memory.description + '</div>';
         
+        // Handle images (both file paths and base64)
         if (memory.media && memory.media.images && memory.media.images.length > 0) {
-            content += '<img src="' + memory.media.images[0] + '" alt="Memory image" class="popup-image">';
+            const imageSrc = memory.media.images[0];
+            // Check if it's a file path or base64
+            let imageUrl;
+            if (imageSrc.startsWith('uploads/')) {
+                // Use the symlinked path
+                imageUrl = `http://localhost:8000/${imageSrc}`;
+            } else if (imageSrc.startsWith('data:')) {
+                // Base64 data URL
+                imageUrl = imageSrc;
+            } else {
+                // Fallback: assume it's a relative path from uploads
+                imageUrl = `http://localhost:8000/uploads/${imageSrc}`;
+            }
+            console.log('🖼️ Image URL for popup:', imageUrl);
+            content += '<img src="' + imageUrl + '" alt="Memory image" class="popup-image" style="max-width: 400px; max-height: 300px; object-fit: cover; border-radius: 4px; margin: 8px 0; cursor: pointer;" onclick="this.style.maxWidth=this.style.maxWidth===\'600px\'?\'400px\':\'600px\'; this.style.maxHeight=this.style.maxHeight===\'450px\'?\'300px\':\'450px\';">';
+        }
+        
+        // Show trajectory info if present
+        if (memory.media && memory.media.trajectories && memory.media.trajectories.length > 0) {
+            content += '<div class="popup-info">🛤️ Trajectory included</div>';
+        } else if (memory.trajectory) {
+            content += '<div class="popup-info">🛤️ Trajectory included</div>';
         }
         
         if (memory.tags && memory.tags.length > 0) {
@@ -859,6 +1217,144 @@ class EnhancedMemoryMap {
         this.validateForm();
     }
 
+    handleTrajectoryUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validate file type
+        const validExtensions = ['.gpx', '.json', '.geojson'];
+        const fileName = file.name.toLowerCase();
+        const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+        
+        if (!isValid) {
+            alert('Please select a valid trajectory file (GPX, JSON, or GeoJSON).');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const content = e.target.result;
+                
+                // Parse based on file type
+                if (fileName.endsWith('.gpx')) {
+                    // Parse GPX (XML format)
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(content, 'text/xml');
+                    
+                    // Extract coordinates from GPX
+                    const trkpts = xmlDoc.getElementsByTagName('trkpt');
+                    const coordinates = [];
+                    for (let i = 0; i < trkpts.length; i++) {
+                        const lat = parseFloat(trkpts[i].getAttribute('lat'));
+                        const lon = parseFloat(trkpts[i].getAttribute('lon'));
+                        coordinates.push([lon, lat]);
+                    }
+                    
+                    this.currentTrajectoryData = {
+                        type: 'LineString',
+                        coordinates: coordinates,
+                        format: 'gpx',
+                        fileName: file.name
+                    };
+                    
+                    console.log(`Parsed GPX trajectory with ${coordinates.length} points`);
+                } else {
+                    // Parse JSON/GeoJSON
+                    const data = JSON.parse(content);
+                    
+                    // Handle different GeoJSON structures
+                    if (data.type === 'FeatureCollection' && data.features && data.features.length > 0) {
+                        this.currentTrajectoryData = data.features[0].geometry;
+                    } else if (data.type === 'Feature') {
+                        this.currentTrajectoryData = data.geometry;
+                    } else if (data.type === 'LineString' || data.type === 'MultiLineString') {
+                        this.currentTrajectoryData = data;
+                    } else {
+                        throw new Error('Unsupported GeoJSON format');
+                    }
+                    
+                    this.currentTrajectoryData.format = 'geojson';
+                    this.currentTrajectoryData.fileName = file.name;
+                    
+                    console.log(`Parsed GeoJSON trajectory: ${this.currentTrajectoryData.type}`);
+                }
+                
+                // Show confirmation
+                alert(`Trajectory file "${file.name}" loaded successfully!`);
+                this.validateForm();
+                
+            } catch (error) {
+                console.error('Error parsing trajectory file:', error);
+                alert(`Failed to parse trajectory file: ${error.message}`);
+                this.currentTrajectoryData = null;
+            }
+        };
+        
+        reader.readAsText(file);
+    }
+
+    async uploadImageToServer(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const base64Data = e.target.result;
+                    const extension = file.name.split('.').pop().toLowerCase();
+                    
+                    const response = await fetch('http://localhost:3001/api/upload/image', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            data: base64Data,
+                            extension: extension
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    resolve(result.path);
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async uploadTrajectoryToServer(trajectoryData, fileName) {
+        try {
+            const extension = fileName.split('.').pop().toLowerCase();
+            
+            const response = await fetch('http://localhost:3001/api/upload/trajectory', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    data: trajectoryData,
+                    extension: extension === 'gpx' ? 'json' : extension
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            return result.path;
+        } catch (error) {
+            console.error('Failed to upload trajectory:', error);
+            throw error;
+        }
+    }
+
     toggleAddMarkerMode() {
         this.isAddingMarker = !this.isAddingMarker;
         const btn = document.getElementById('add-marker-btn');
@@ -877,14 +1373,19 @@ class EnhancedMemoryMap {
     }
 
     addMemoryMarker(lngLat) {
-        console.log('Adding memory marker at:', lngLat);
+        console.log('🗺️ Adding memory marker at:', lngLat);
+        console.log('📍 Coordinate setting debug:');
+        console.log('  - Received lngLat:', lngLat);
+        console.log('  - lngLat.lng:', lngLat.lng);
+        console.log('  - lngLat.lat:', lngLat.lat);
         
         // Reset marker mode
         this.toggleAddMarkerMode();
         
         // Store coordinates for the memory
         this.currentCoordinates = [lngLat.lng, lngLat.lat];
-        console.log('currentCoordinates set to:', this.currentCoordinates);
+        console.log('✅ currentCoordinates set to:', this.currentCoordinates);
+        console.log('✅ Coordinates valid check:', !!this.currentCoordinates);
         
         // Enable save button
         this.validateForm();
@@ -898,7 +1399,8 @@ class EnhancedMemoryMap {
             .setLngLat([lngLat.lng, lngLat.lat])
             .addTo(this.map);
             
-        console.log('Temporary marker added to map');
+        console.log('✅ Temporary marker added to map');
+        console.log('🎯 Marker setup completed. Current coordinates:', this.currentCoordinates);
     }
 
     validateForm() {

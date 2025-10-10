@@ -17,7 +17,7 @@
     <div id="app">
         <!-- Header -->
         <header class="header">
-            <h1>🎓 UAL M2 Enhanced Memory Map</h1>
+            <h1>🎓 UAL Memory Map (M2)</h1>
             <p>Multi-user memory preservation system for graduated members</p>
         </header>
 
@@ -96,6 +96,33 @@
                     <p>Create a memory for the selected graduated member</p>
                 </div>
 
+                <!-- Visualization Mode Switcher -->
+                <div class="visualization-switcher" id="visualization-switcher">
+                    <div class="switcher-header">
+                        <h3>🎨 Visualization Mode</h3>
+                        <p>Choose how memories are displayed on the map</p>
+                    </div>
+                    <div class="mode-buttons">
+                        <button class="mode-btn active" data-mode="colored-dots" id="colored-dots-btn">
+                            <div class="mode-icon">🔵</div>
+                            <div class="mode-info">
+                                <div class="mode-name">Colored Dots</div>
+                                <div class="mode-detail">Show all memories as colored markers</div>
+                            </div>
+                        </button>
+                        <button class="mode-btn" data-mode="image-thumbnails" id="image-thumbnails-btn">
+                            <div class="mode-icon">🖼️</div>
+                            <div class="mode-info">
+                                <div class="mode-name">Image Thumbnails</div>
+                                <div class="mode-detail">Show only memories with images as thumbnails</div>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="mode-status" id="mode-status">
+                        Currently showing: <strong>Colored Dots Mode</strong>
+                    </div>
+                </div>
+
                 <!-- Memory Form -->
                 <div class="memory-form">
                     <!-- Contributor Information -->
@@ -170,6 +197,18 @@
                         <button type="button" id="clear-form-btn" class="btn btn-secondary">
                             Clear Form
                         </button>
+                        
+                        <!-- Progress Bar -->
+                        <div id="save-progress-container" style="display: none; margin-top: 10px;">
+                            <div class="progress-label" style="font-size: 14px; margin-bottom: 5px;">
+                                <span id="progress-text">Saving memory...</span>
+                            </div>
+                            <div class="progress" style="height: 20px;">
+                                <div id="save-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                     role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

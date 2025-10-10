@@ -196,7 +196,7 @@ body {
 
 /* Custom Mapbox Popup */
 .mapboxgl-popup {
-    max-width: 300px;
+    max-width: 450px;
 }
 
 .mapboxgl-popup-content {

@@ -37,3 +37,13 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Collaborative data collection configuration:
+# ALL user-generated content is tracked for complete data collection
+# This includes:
+# - User JSON files (data/users/*.json) 
+# - Memory JSON files (data/memories/*.json)
+# - Uploaded images (data/uploads/images/*)
+# - Trajectory files (data/uploads/trajectories/*)
+# 
+# Note: This may result in larger repository size due to binary files
