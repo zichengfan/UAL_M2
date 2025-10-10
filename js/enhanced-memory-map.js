@@ -41,14 +41,19 @@ class EnhancedMemoryMap {
             this.setupEventListeners();
             console.log('✅ Event listeners set up successfully');
             
+            // Set up user interface immediately with sample data
+            console.log('🎨 Setting up user interface...');
+            this.setupUserInterface();
+            console.log('✅ User interface set up successfully');
+            
             // Load data asynchronously (non-blocking)
             console.log('📊 Loading users and memories...');
             Promise.all([
                 this.userManager.loadUsers().catch(err => console.warn('User loading error:', err)),
                 this.dataManager.loadMemories().catch(err => console.warn('Memory loading error:', err))
             ]).then(async () => {
-                console.log('✅ Data loaded, setting up UI...');
-                this.setupUserInterface();
+                console.log('✅ Data loaded, refreshing UI...');
+                // Refresh UI with loaded data if needed
                 await this.loadInitialData();
                 console.log('✅ All components ready');
             });
@@ -110,15 +115,17 @@ class EnhancedMemoryMap {
     setupUserInterface() {
         console.log('🎨 Setting up user interface...');
         
+        // Always load sample users first to ensure UI has data
+        console.log('📦 Loading sample users...');
+        this.userManager.loadSampleUsers();
+        
         // Ensure we have sample users loaded
         let graduatedMembers = this.userManager.getGraduatedMembers();
-        console.log('📊 Initial graduated members found:', graduatedMembers);
+        console.log('📊 Graduated members found:', graduatedMembers);
         
         if (graduatedMembers.length === 0) {
-            console.log('⚠️ No graduated members found, loading sample users...');
-            this.userManager.loadSampleUsers();
-            graduatedMembers = this.userManager.getGraduatedMembers();
-            console.log('✅ After loading samples, graduated members:', graduatedMembers);
+            console.warn('❌ Still no graduated members found after loading samples');
+            return;
         }
         
         // Create user switcher
@@ -128,8 +135,6 @@ class EnhancedMemoryMap {
         if (graduatedMembers.length > 0) {
             console.log('🎯 Setting default user to:', graduatedMembers[0].id);
             this.switchToUser(graduatedMembers[0].id);
-        } else {
-            console.warn('❌ Still no graduated members found after loading samples');
         }
     }
 
@@ -172,18 +177,18 @@ class EnhancedMemoryMap {
             </div>
         `;
 
-        // Add to control panel
+        // Add to control panel after registration section
         const controlPanel = document.querySelector('.control-panel');
-        const panelHeader = controlPanel.querySelector('.panel-header');
+        const registrationSection = controlPanel.querySelector('.registration-section');
         
         console.log('Control panel found:', !!controlPanel);
-        console.log('Panel header found:', !!panelHeader);
+        console.log('Registration section found:', !!registrationSection);
         
-        if (controlPanel && panelHeader) {
-            panelHeader.parentNode.insertBefore(switcherContainer, panelHeader.nextSibling);
-            console.log('User switcher inserted into DOM');
+        if (controlPanel && registrationSection) {
+            registrationSection.parentNode.insertBefore(switcherContainer, registrationSection.nextSibling);
+            console.log('User switcher inserted into DOM after registration section');
         } else {
-            console.error('Could not find control panel or panel header');
+            console.error('Could not find control panel or registration section');
         }
 
         // Add event listeners for user buttons
@@ -548,19 +553,19 @@ class EnhancedMemoryMap {
         this.renderMemoriesList();
         
         // Check if user is already logged in
-        this.checkExistingSession();
+        await this.checkExistingSession();
         
         console.log('✅ Initial data loaded successfully');
     }
 
-    checkExistingSession() {
+    async checkExistingSession() {
         // Check if there's a saved session
         const lastEmail = localStorage.getItem('ual_m2_last_contributor_email');
         if (lastEmail) {
             const contributor = this.userManager.getContributorByEmail(lastEmail);
             if (contributor) {
                 this.currentRegisteredContributor = contributor;
-                this.showContributorInfo();
+                await this.showContributorInfo();
                 this.prefillContributorName();
             }
         }
@@ -596,7 +601,7 @@ class EnhancedMemoryMap {
             });
 
             this.currentRegisteredContributor = contributor;
-            this.showContributorInfo();
+            await this.showContributorInfo();
             this.prefillContributorName();
             
             alert(`🎉 Welcome ${name}! You've been assigned the color ${contributor.color}. Your contributions will now be saved and grouped by this color.`);
@@ -607,7 +612,7 @@ class EnhancedMemoryMap {
         }
     }
 
-    handleLogin() {
+    async handleLogin() {
         const email = document.getElementById('login-email').value.trim();
         
         if (!email) {
@@ -623,8 +628,11 @@ class EnhancedMemoryMap {
 
         this.currentRegisteredContributor = contributor;
         localStorage.setItem('ual_m2_last_contributor_email', email);
-        this.showContributorInfo();
+        await this.showContributorInfo();
         this.prefillContributorName();
+        
+        // Update current contributor reference to latest data
+        this.currentRegisteredContributor = this.userManager.getContributorByEmail(email);
         
         alert(`Welcome back, ${contributor.name}! Your assigned color is ${contributor.color}.`);
     }
@@ -647,7 +655,7 @@ class EnhancedMemoryMap {
         document.getElementById('current-contributor-info').style.display = 'none';
     }
 
-    showContributorInfo() {
+    async showContributorInfo() {
         if (!this.currentRegisteredContributor) return;
 
         const contributor = this.currentRegisteredContributor;
@@ -661,7 +669,12 @@ class EnhancedMemoryMap {
         document.getElementById('contributor-name-display').textContent = contributor.name;
         document.getElementById('contributor-email-display').textContent = contributor.email;
         
-        const stats = `Registered: ${new Date(contributor.registrationDate).toLocaleDateString()}, Contributions: ${contributor.memoriesContributed?.length || 0}`;
+        // Update contribution counts before displaying stats
+        await this.userManager.updateContributionCounts();
+        const updatedContributor = this.userManager.getContributorByEmail(contributor.email);
+        const contributionCount = updatedContributor?.memoriesContributed?.length || 0;
+        
+        const stats = `Registered: ${new Date(contributor.registrationDate).toLocaleDateString()}, Contributions: ${contributionCount}`;
         document.getElementById('contributor-stats').textContent = stats;
         
         // Auto-fill contributor name in the memory form
@@ -848,6 +861,13 @@ class EnhancedMemoryMap {
             
             this.updateProgress(100, 'Save completed!');
             console.log('🎉 Memory save process completed successfully!');
+            
+            // Update contribution counts for registered contributors
+            if (this.currentRegisteredContributor) {
+                console.log('📊 Updating contribution counts...');
+                await this.userManager.updateContributionCounts();
+                console.log('✅ Contribution counts updated');
+            }
             
             // Hide progress bar after a short delay
             setTimeout(() => {
