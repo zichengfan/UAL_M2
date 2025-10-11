@@ -1,0 +1,26 @@
+{
+  "id": "1760185554038",
+  "title": "University of Cambridge",
+  "description": "Have group presentation at Department of Architecture.",
+  "targetUserId": "user002",
+  "contributorName": "Sijie Yang",
+  "contributorEmail": "sijie.1.yang@outlook.com",
+  "coordinates": [
+    0.11758770465405632,
+    52.205463651250085
+  ],
+  "timestamp": "2025-10-11T12:25:54.038Z",
+  "type": "location_memory",
+  "media": {
+    "images": [
+      "uploads/images/86befd92-8ec7-48d8-a714-cc202717e704.jpg"
+    ],
+    "trajectories": []
+  },
+  "tags": [
+    "research"
+  ],
+  "isPublic": true,
+  "registeredContributorId": "sijie.1.yang@outlook.com",
+  "contributorColor": "#f43d3d"
+}
