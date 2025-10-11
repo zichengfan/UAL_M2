@@ -18,7 +18,8 @@ A distributed memory collection platform for lab members to contribute and prese
 
 1. **Setup**
    ```bash
-   git clone https://github.com/zichengfan/UAL_M2.git
+   # Fork the repo on GitHub first, then clone your own fork to local
+   git clone https://github.com/<your-username>/UAL_M2.git
    cd UAL_M2
    chmod +x run.sh
    ./run.sh
